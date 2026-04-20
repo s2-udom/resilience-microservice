@@ -17,3 +17,4 @@ env/
 *.tfstate.backup
 .terraform.lock.hcl
 *.tfvars
+terraform/healer.zip
