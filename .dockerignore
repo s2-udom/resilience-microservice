@@ -1,0 +1,31 @@
+cat > ~/resilience-microservice/.dockerignore << 'EOF'
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+.venv
+
+# Git
+.git/
+.gitignore
+
+# Terraform
+.terraform/
+terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+
+# Healer (separate deployment artifact)
+healer/
+
+# IDE
+.vscode/
+.idea/
+
+# Docs and misc
+*.md
+CHANGELOG.md
+EOF
