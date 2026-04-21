@@ -1,23 +1,24 @@
-# 1. Use the official Python image
 FROM python:3.12.4-slim
 
-# 2. Set the working directory to /app
+LABEL maintainer="Samuel Udom <22069636@uwe.ac.uk>"
+LABEL project="UFCFFF-30-3 Resilience Microservice"
+LABEL version="2.0.0"
+
 WORKDIR /app
 
-# 3. Copy requirements and install
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 4. Copy the entire project into the container
 COPY . .
 
-# 5. NEW: Add the current directory to the Python Path
-# This prevents the "executable not found" error
 ENV PYTHONPATH=/app
 
-# 6. Expose the port
 EXPOSE 8000
 
-# 7. UPDATED COMMAND: Call uvicorn via python -m
-# This is more reliable in Docker environments
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
 CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
