@@ -21,7 +21,7 @@ import os
 import time
 from datetime import datetime, timezone
 
-# Structured logging setup (emits JSON to CloudWatch Logs) 
+# ── Structured logging setup (emits JSON to CloudWatch Logs) ──────────────────
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -36,13 +36,13 @@ def log(level: int, event: str, **kwargs):
     logger.log(level, json.dumps(entry))
 
 
-# AWS clients 
+# ── AWS clients ───────────────────────────────────────────────────────────────
 ecs    = boto3.client("ecs",      region_name="eu-west-2")
 sns    = boto3.client("sns",      region_name="eu-west-2")
 dynamo = boto3.resource("dynamodb", region_name="eu-west-2")
 
 
-# MAPE-K: ANALYSE phase 
+# ── MAPE-K: ANALYSE phase ─────────────────────────────────────────────────────
 def analyse_failure(cluster: str, service: str) -> dict:
     """
     Query ECS service state to classify the failure type and severity.
@@ -80,7 +80,7 @@ def analyse_failure(cluster: str, service: str) -> dict:
     return analysis
 
 
-# MAPE-K: PLAN phase 
+# ── MAPE-K: PLAN phase ────────────────────────────────────────────────────────
 def plan_remediation(analysis: dict, remediation_count: int) -> str:
     """
     Select remediation strategy based on failure severity and prior
@@ -108,7 +108,7 @@ def plan_remediation(analysis: dict, remediation_count: int) -> str:
     return action
 
 
-# MAPE-K: EXECUTE phase 
+# ── MAPE-K: EXECUTE phase ─────────────────────────────────────────────────────
 def execute_force_deploy(cluster: str, service: str) -> dict:
     """
     Level 1 remediation: force a new ECS deployment.
@@ -189,7 +189,7 @@ def execute_escalate(cluster: str, service: str, analysis: dict) -> dict:
     return {"action": "ESCALATE", "success": True}
 
 
-# MAPE-K: KNOWLEDGE base helpers (DynamoDB)
+# ── MAPE-K: KNOWLEDGE base helpers (DynamoDB) ─────────────────────────────────
 def get_remediation_count(service: str) -> int:
     """Retrieve the number of recent remediation attempts from the Knowledge base."""
     table_name = os.environ.get("HEALER_TABLE", "")
@@ -246,7 +246,7 @@ def reset_remediation_count(service: str):
         log(logging.WARNING, "KNOWLEDGE_RESET_ERROR", error=str(e))
 
 
-# Lambda entry point 
+# ── Lambda entry point ────────────────────────────────────────────────────────
 def lambda_handler(event, context):
     """
     Entry point — orchestrates the full MAPE-K loop:
@@ -264,7 +264,7 @@ def lambda_handler(event, context):
     log(logging.INFO, "HEALER_INVOKED",
         cluster=cluster, service=service, trigger_event=str(event)[:200])
 
-    # ANALYSE 
+    # ── ANALYSE ───────────────────────────────────────────────────────────────
     try:
         analysis = analyse_failure(cluster, service)
     except Exception as e:
@@ -276,11 +276,11 @@ def lambda_handler(event, context):
         reset_remediation_count(service)
         return {"statusCode": 200, "body": "Service healthy — no action taken"}
 
-    # PLAN 
+    # ── PLAN ──────────────────────────────────────────────────────────────────
     remediation_count = get_remediation_count(service)
     action            = plan_remediation(analysis, remediation_count)
 
-    # EXECUTE 
+    # ── EXECUTE ───────────────────────────────────────────────────────────────
     try:
         if action == "FORCE_DEPLOY":
             result = execute_force_deploy(cluster, service)
@@ -294,7 +294,7 @@ def lambda_handler(event, context):
         log(logging.ERROR, "EXECUTE_ERROR", action=action, error=str(e))
         return {"statusCode": 500, "body": f"Execute phase failed: {e}"}
 
-    # KNOWLEDGE: persist 
+    # ── KNOWLEDGE: persist ────────────────────────────────────────────────────
     record_remediation(service, action, result)
 
     # Emit final structured summary (key metric for MTTR calculation)
