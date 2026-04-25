@@ -60,7 +60,8 @@ def _call_downstream_pricing(item_id: str) -> dict:
         raise Exception("Downstream pricing service unavailable")
     elapsed = time.time() - start
     cb_latency_samples.append(elapsed)
-    return {"item_id": item_id, "price_usd": 9.99, "source": "pricing-api", "latency_ms": round(elapsed * 1000, 2)}
+    return {"item_id": item_id, "price_usd": 9.99, "source": "pricing-api",
+            "latency_ms": round(elapsed * 1000, 2)}
 
 
 class InventoryItem(BaseModel):
